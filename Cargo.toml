@@ -1,0 +1,48 @@
+[package]
+name = "forge_backend"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# --- Axum and Core Web Components ---
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1.38", features = ["full"] } # Tokio runtime for async operations
+tower-http = { version = "0.5", features = ["cors", "trace", "auth"] } # Common HTTP utilities, including CORS and tracing middleware
+
+# --- Database (PostgreSQL with SQLx) ---
+sqlx = { version = "0.7", default-features = false, features = [
+    "runtime-tokio-rustls", # Async runtime and TLS
+    "postgres",             # PostgreSQL driver
+    "uuid",                 # Support for UUID types
+    "chrono",               # Support for DateTime and Date types
+    "decimal",              # Support for NUMERIC types (rust_decimal)
+    "json",                 # Support for JSONB types (serde_json)
+] }
+rust_decimal = "1.30"        # For accurate decimal arithmetic, used with SQLx's "decimal" feature
+serde_json = "1.0"           # For JSON serialization/deserialization, especially for JSONB fields
+
+# --- Data Serialization/Deserialization ---
+serde = { version = "1.0", features = ["derive"] } # Core Serde library with derive macros
+
+# --- UUIDs and Date/Time ---
+uuid = { version = "1.9", features = ["serde", "v4"] } # For UUID generation and parsing
+chrono = { version = "0.4", features = ["serde"] } # For date and time handling
+
+# --- Configuration & Logging ---
+dotenvy = "0.15"             # To load environment variables from a .env file
+tracing = "0.1"              # Core tracing (logging) library
+tracing-subscriber = { version = "0.3", features = ["env-filter"] } # Subscriber for tracing events
+
+# --- Authentication (if you implement user authentication) ---
+# For password hashing (e.g., for local user accounts)
+argon2 = "0.5" # Or bcrypt, scrypt etc.
+
+# For JSON Web Tokens (JWTs) if used for session management
+jsonwebtoken = "9.3"
+
+[dev-dependencies]
+# For testing
+rstest = "0.18"
+# Add other test-specific dependencies if needed
