@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use chrono::{DateTime, Utc, NaiveDate};
-use sqlx::FromRow;
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
-use serde_json::Value as JsonValue; // For JSONB
+use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
+use sqlx::FromRow;
+use uuid::Uuid; // For JSONB
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 pub struct Transaction {
@@ -11,15 +11,15 @@ pub struct Transaction {
     pub tenant_id: Uuid,
     pub transaction_date: NaiveDate,
     pub description: String,
-    pub r#type: String, // 'type' is a Rust keyword
-    pub category_id: Option<Uuid>, // Nullable
+    pub r#type: String,               // 'type' is a Rust keyword
+    pub category_id: Option<Uuid>,    // Nullable
     pub tags_json: Option<JsonValue>, // Nullable for JSONB
-    pub amount: Decimal, // NUMERIC(18,2)
+    pub amount: Decimal,              // NUMERIC(18,2)
     pub currency_code: String,
     pub is_reconciled: bool,
     pub reconciliation_date: Option<NaiveDate>, // Nullable
-    pub notes: Option<String>, // Nullable
-    pub source_document_url: Option<String>, // Nullable
+    pub notes: Option<String>,                  // Nullable
+    pub source_document_url: Option<String>,    // Nullable
     pub created_at: DateTime<Utc>,
     pub created_by: Uuid,
     pub updated_at: DateTime<Utc>,

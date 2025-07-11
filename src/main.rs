@@ -1,6 +1,4 @@
-use axum::{
-    Router,
-};
+use axum::Router;
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -10,11 +8,11 @@ mod app_state;
 mod config; // We defined this in the folder structure, will hold app configuration
 mod db;
 mod error;
+mod middleware; // Added for future middleware integration
 mod models;
 mod routes;
 mod services;
-mod middleware; // Added for future middleware integration
-mod utils;    // Added for future utility integration
+mod utils; // Added for future utility integration
 
 // The main entry point for our asynchronous Rust application.
 // `#[tokio::main]` macro sets up the Tokio runtime for async operations.
@@ -43,8 +41,8 @@ async fn main() {
 
     // 3. Database Connection Pool Setup
     // Retrieves the DATABASE_URL from environment variables.
-    let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set in .env file");
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
     tracing::info!("Connecting to database...");
     let pool = db::connect_to_db(&database_url)
         .await
@@ -55,7 +53,6 @@ async fn main() {
     // In a real app, you might load other config like JWT secrets here
     // let app_config = config::AppConfig::load().expect("Failed to load application configuration");
     // tracing::info!("Application configuration loaded.");
-
 
     // 5. Create Application State
     // This state will be shared across all your API handlers, providing access to the DB pool
@@ -70,24 +67,21 @@ async fn main() {
         // You will add more `merge` calls here as you implement more features.
         .merge(routes::currency::currency_routes())
         .merge(routes::transaction::transaction_routes())
-        .merge(routes::user::user_routes())     // Assuming you'll add these next
+        .merge(routes::user::user_routes()) // Assuming you'll add these next
         .merge(routes::tenant::tenant_routes()) // Assuming you'll add these next
         // TODO: Add more routes here as you implement them for other phases/models
         // .merge(routes::account::account_routes())
         // .merge(routes::category::category_routes())
         // .merge(routes::auth::auth_routes()) // For authentication endpoints
-
         // TODO: Add global middleware here (e.g., for tracing, authentication, CORS)
         // .layer(middleware::auth::jwt_auth_layer()) // Example: JWT authentication
         // .layer(tower_http::trace::TraceLayer::new_for_http()) // Example: Request tracing
-
         // Attach the application state to the router so handlers can access it.
         .with_state(app_state);
 
     // 7. Run the Axum Server
     // Retrieves host and port from environment variables, defaulting if not set.
-    let app_host = std::env::var("APP_HOST")
-        .unwrap_or_else(|_| "127.0.0.1".to_string());
+    let app_host = std::env::var("APP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let app_port = std::env::var("APP_PORT")
         .unwrap_or_else(|_| "3000".to_string())
         .parse::<u16>() // Parse the port as an unsigned 16-bit integer
@@ -113,13 +107,13 @@ mod utils {
             // In a real app, this would extract user ID from a JWT, session, etc.
             // For now, return a fixed ID or generate a new one for testing.
             Uuid::new_v4() // Example: generate a new ID every time (not practical for auth)
-            // Or return a fixed one for easier testing: Uuid::parse_str("your-test-user-id").unwrap()
+                           // Or return a fixed one for easier testing: Uuid::parse_str("your-test-user-id").unwrap()
         }
     }
 }
 
 // Re-export modules to make them accessible
-pub mod api;
+// pub mod api;
+pub mod error;
 pub mod models;
-pub mod services;
-pub mod error; // Make sure your error module is public
+pub mod services; // Make sure your error module is public

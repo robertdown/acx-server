@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use uuid::Uuid;
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 pub struct Account {
@@ -10,7 +10,7 @@ pub struct Account {
     pub account_type_id: Uuid,
     pub name: String,
     pub account_code: Option<String>, // Nullable
-    pub description: Option<String>, // Nullable
+    pub description: Option<String>,  // Nullable
     pub currency_code: String,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,

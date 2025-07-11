@@ -1,0 +1,6 @@
+max_width = 100            # Line width limit (default is 100)
+hard_tabs = false          # Use spaces instead of tabs
+tab_spaces = 4             # Number of spaces per tab
+use_field_init_shorthand = true
+newline_style = "Unix"
+reorder_imports = true

@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+use crate::models::transaction::TransactionType;
 use chrono::NaiveDate;
-use validator::Validate;
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use crate::models::transaction::TransactionType; // Import the enum
+use uuid::Uuid;
+use validator::Validate; // Import the enum
 
 // DTO for creating a new Transaction
 #[derive(Debug, Deserialize, Serialize, Validate)]

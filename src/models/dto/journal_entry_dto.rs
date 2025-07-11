@@ -1,8 +1,8 @@
+use crate::models::journal_entry::JournalEntryType;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use validator::Validate;
-use rust_decimal::Decimal;
-use crate::models::journal_entry::JournalEntryType; // Import the enum
+use validator::Validate; // Import the enum
 
 // DTO for creating a new JournalEntry
 // Note: transaction_id would typically be provided by the service creating the overall transaction,

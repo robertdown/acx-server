@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
-use sqlx::FromRow;
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use uuid::Uuid;
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 pub struct JournalEntry {
@@ -10,11 +10,11 @@ pub struct JournalEntry {
     pub transaction_id: Uuid,
     pub account_id: Uuid,
     pub entry_type: String, // Consider an enum here: JournalEntryType
-    pub amount: Decimal, // NUMERIC(18,2)
+    pub amount: Decimal,    // NUMERIC(18,2)
     pub currency_code: String,
     pub exchange_rate: Option<Decimal>, // Nullable NUMERIC(18,6)
     pub converted_amount: Option<Decimal>, // Nullable NUMERIC(18,2)
-    pub memo: Option<String>, // Nullable
+    pub memo: Option<String>,           // Nullable
     pub created_at: DateTime<Utc>,
     pub created_by: Uuid,
     pub updated_at: DateTime<Utc>,
