@@ -1,119 +1,94 @@
-use axum::Router;
-use std::net::SocketAddr;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+// src/main.rs (with updated user routes import)
 
-// Import our custom modules.
-// These `mod` declarations tell Rust to compile and include the code from these directories/files.
+// Standard library imports
+use std::error::Error as StdError;
+use std::net::SocketAddr; // Alias for StdError to avoid conflict with AppError
+
+// Third-party crates
+use axum::{
+    response::IntoResponse, // Added for IntoResponse trait from AppError
+    Router,
+};
+use dotenvy::dotenv;
+use sqlx::PgPool; // Database connection pool
+use tower_http::trace::{self, TraceLayer};
+use tracing::{info, Level}; // For loading .env file
+
+// Internal modules
 mod app_state;
-mod config; // We defined this in the folder structure, will hold app configuration
 mod db;
 mod error;
-mod middleware; // Added for future middleware integration
-mod models;
-mod routes;
-mod services;
-mod utils; // Added for future utility integration
+mod user;
 
-// The main entry point for our asynchronous Rust application.
-// `#[tokio::main]` macro sets up the Tokio runtime for async operations.
+use crate::app_state::AppState; // Import AppState from app_state module
+use db::setup_database;
+use error::AppError; // This path remains the same
+
+// Update the user_routes import!
+use crate::user::handlers::user_routes; // CHANGED: from `crate::api::user_handlers::user_routes`
+
 #[tokio::main]
-async fn main() {
-    // 1. Initialize Tracing (Logging)
-    // This sets up a global logger that captures events from `tracing` macros
-    // (like `info!`, `debug!`, `error!`).
-    tracing_subscriber::registry()
-        // Filters log events based on environment variables (e.g., RUST_LOG=debug).
-        // Defaults to showing debug logs for our app and info/debug for sqlx/tower-http.
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "forge_backend=debug,sqlx=info,tower_http=debug".into()),
-        )
-        // Formats log events for console output.
-        .with(tracing_subscriber::fmt::layer())
-        // Installs the subscriber globally.
+async fn main() -> Result<(), Box<dyn StdError>> {
+    // Using StdError alias
+    // Load environment variables from .env file
+    dotenv().ok();
+
+    // Initialize tracing (logging)
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .compact()
         .init();
 
-    // 2. Load Environment Variables from .env file
-    // `dotenvy::dotenv().ok()` attempts to load variables from a `.env` file in the project root.
-    // `.ok()` prevents crashing if the file doesn't exist (e.g., in production where env vars are set directly).
-    dotenvy::dotenv().ok();
-    tracing::info!("Environment variables loaded.");
+    info!("Starting Forge API server...");
 
-    // 3. Database Connection Pool Setup
-    // Retrieves the DATABASE_URL from environment variables.
+    // Database setup
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
-    tracing::info!("Connecting to database...");
-    let pool = db::connect_to_db(&database_url)
+
+    let pool = setup_database(&database_url).await.map_err(|e| {
+        Box::new(AppError::DatabaseError(format!(
+            "Failed to connect to the database: {}",
+            e
+        )))
+    })?;
+
+    // Run migrations
+    sqlx::migrate!("./migrations")
+        .run(&pool)
         .await
-        .expect("Failed to connect to database");
-    tracing::info!("Database connection pool established.");
+        .map_err(|e| {
+            Box::new(AppError::InternalServerError(format!(
+                "Failed to run database migrations: {}",
+                e
+            )))
+        })?;
 
-    // TODO: 4. Load Application Configuration (Future Step, Placeholder)
-    // In a real app, you might load other config like JWT secrets here
-    // let app_config = config::AppConfig::load().expect("Failed to load application configuration");
-    // tracing::info!("Application configuration loaded.");
+    // Create AppState
+    let app_state = AppState { pool };
 
-    // 5. Create Application State
-    // This state will be shared across all your API handlers, providing access to the DB pool
-    // and potentially other shared resources (like config, or client for external services).
-    let app_state = app_state::AppState { pool }; // Add other fields like `config: app_config` later
-
-    // 6. Build the Axum Application Router
-    // This defines all the API endpoints and maps them to their respective handler functions.
+    // Build our application routes
     let app = Router::new()
-        // Merge routes from different modules to organize your API endpoints.
-        // We've already generated `currency_routes` and `transaction_routes`.
-        // You will add more `merge` calls here as you implement more features.
-        .merge(routes::currency::currency_routes())
-        .merge(routes::transaction::transaction_routes())
-        .merge(routes::user::user_routes()) // Assuming you'll add these next
-        .merge(routes::tenant::tenant_routes()) // Assuming you'll add these next
-        // TODO: Add more routes here as you implement them for other phases/models
-        // .merge(routes::account::account_routes())
-        // .merge(routes::category::category_routes())
-        // .merge(routes::auth::auth_routes()) // For authentication endpoints
-        // TODO: Add global middleware here (e.g., for tracing, authentication, CORS)
-        // .layer(middleware::auth::jwt_auth_layer()) // Example: JWT authentication
-        // .layer(tower_http::trace::TraceLayer::new_for_http()) // Example: Request tracing
-        // Attach the application state to the router so handlers can access it.
-        .with_state(app_state);
+        .nest("/api/v1/users", user_routes())
+        .with_state(app_state)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        );
 
-    // 7. Run the Axum Server
-    // Retrieves host and port from environment variables, defaulting if not set.
-    let app_host = std::env::var("APP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let app_port = std::env::var("APP_PORT")
-        .unwrap_or_else(|_| "3000".to_string())
-        .parse::<u16>() // Parse the port as an unsigned 16-bit integer
-        .expect("APP_PORT must be a valid number");
+    // Run the server
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "8080".to_string())
+        .parse::<u16>()
+        .expect("PORT must be a valid number");
 
-    let addr = SocketAddr::new(app_host.parse().expect("Invalid APP_HOST"), app_port);
-    tracing::info!("Forge backend server listening on {}", addr);
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    info!("Forge API server listening on {}", addr);
 
-    // Start serving the application. `await` here means the main function will block
-    // until the server shuts down (e.g., due to a signal or an unrecoverable error).
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap(); // Unwrapping here will panic if the server encounters a fatal error during startup or runtime.
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+
+    axum::serve(listener, app.into_make_service()).await?;
+    tracing::info!("Forge API server stopped gracefully.");
+
+    Ok(())
 }
-
-// Dummy function for current_user_id for compilation.
-// Replace with actual authentication logic in a `utils/auth_middleware.rs` or similar.
-mod utils {
-    pub mod auth_middleware {
-        use uuid::Uuid;
-        pub fn get_current_user_id() -> Uuid {
-            // In a real app, this would extract user ID from a JWT, session, etc.
-            // For now, return a fixed ID or generate a new one for testing.
-            Uuid::new_v4() // Example: generate a new ID every time (not practical for auth)
-                           // Or return a fixed one for easier testing: Uuid::parse_str("your-test-user-id").unwrap()
-        }
-    }
-}
-
-// Re-export modules to make them accessible
-// pub mod api;
-pub mod error;
-pub mod models;
-pub mod services; // Make sure your error module is public

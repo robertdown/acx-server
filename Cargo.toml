@@ -1,48 +1,48 @@
+# Cargo.toml
+
 [package]
 name = "forge_backend"
 version = "0.1.0"
-edition = "2021"
+edition = "2021" # Using the latest Rust edition
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 # --- Axum and Core Web Components ---
-axum = { version = "0.7", features = ["macros"] }
-tokio = { version = "1.38", features = ["full"] } # Tokio runtime for async operations
-tower-http = { version = "0.5", features = ["cors", "trace", "auth"] } # Common HTTP utilities, including CORS and tracing middleware
+axum = { version = "0.7.5", features = ["macros"] } # Web framework, "macros" for route attributes
+tokio = { version = "1.38.0", features = ["full"] } # Asynchronous runtime, "full" for convenience (consider specific features for prod)
+tower-http = { version = "0.5.2", features = ["cors", "trace"] } # Common HTTP utilities, including CORS and tracing middleware
 
 # --- Database (PostgreSQL with SQLx) ---
-sqlx = { version = "0.7", default-features = false, features = [
-    "runtime-tokio-rustls", # Async runtime and TLS
-    "postgres",             # PostgreSQL driver
-    "uuid",                 # Support for UUID types
-    "chrono",               # Support for DateTime and Date types
-    "decimal",              # Support for NUMERIC types (rust_decimal)
-    "json",                 # Support for JSONB types (serde_json)
+sqlx = { version = "^0.8.6", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "rust_decimal",
+    "json",
+    "macros",
+    "migrate"
 ] }
-rust_decimal = "1.30"        # For accurate decimal arithmetic, used with SQLx's "decimal" feature
-serde_json = "1.0"           # For JSON serialization/deserialization, especially for JSONB fields
+rust_decimal = { version = "1.30.0", features = ["serde-with-float"] } # For accurate decimal arithmetic, used with SQLx's "decimal" feature
+serde_json = "1.0.117"           # For JSON serialization/deserialization, especially for JSONB fields
 
 # --- Data Serialization/Deserialization ---
-serde = { version = "1.0", features = ["derive"] } # Core Serde library with derive macros
+serde = { version = "1.0.203", features = ["derive"] } # Core Serde library with derive macros for Serialize/Deserialize
 
 # --- UUIDs and Date/Time ---
-uuid = { version = "1.9", features = ["serde", "v4"] } # For UUID generation and parsing
-chrono = { version = "0.4", features = ["serde"] } # For date and time handling
+uuid = { version = "1.9.1", features = ["serde", "v4"] } # For UUID generation and parsing, "v4" for random UUIDs
+chrono = { version = "0.4.38", features = ["serde"] } # For date and time handling, "serde" for serialization
 
 # --- Configuration & Logging ---
-dotenvy = "0.15"             # To load environment variables from a .env file
-tracing = "0.1"              # Core tracing (logging) library
-tracing-subscriber = { version = "0.3", features = ["env-filter"] } # Subscriber for tracing events
+dotenvy = "0.15.7"             # To load environment variables from a .env file
+tracing = "0.1.40"             # Core tracing (logging) library
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] } # Subscriber for tracing events
 
-# --- Authentication (if you implement user authentication) ---
-# For password hashing (e.g., for local user accounts)
-argon2 = "0.5" # Or bcrypt, scrypt etc.
+# --- Authentication & Validation ---
+argon2 = "0.5.3"               # For secure password hashing (used in user service)
+validator = { version = "0.18.1", features = ["derive"] } # For input validation on DTOs, "derive" for macros
 
-# For JSON Web Tokens (JWTs) if used for session management
-jsonwebtoken = "9.3"
-
+# --- Development and Testing Dependencies (only compiled in dev/test profiles) ---
 [dev-dependencies]
-# For testing
-rstest = "0.18"
-# Add other test-specific dependencies if needed
+rstest = "0.18.0" # A testing fixture framework (optional, but useful)
