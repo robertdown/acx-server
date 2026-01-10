@@ -37,7 +37,7 @@ chrono = { version = "0.4.38", features = ["serde"] } # For date and time handli
 # --- Configuration & Logging ---
 dotenvy = "0.15.7"             # To load environment variables from a .env file
 tracing = "0.1.40"             # Core tracing (logging) library
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] } # Subscriber for tracing events
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] } # Subscriber for tracing events
 
 # --- Authentication & Validation ---
 argon2 = "0.5.3"               # For secure password hashing (used in user service)
